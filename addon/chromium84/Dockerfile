@@ -3,7 +3,7 @@ FROM --platform=$BUILDPLATFORM node:22 AS builder
 WORKDIR /app
 
 # Bump the add-on version in config.yaml whenever this pinned revision changes.
-ARG FUSION_REVISION=f4df0d76caeb82ee0dec6016859d5f5072776fad
+ARG FUSION_REVISION=dbc70f8cb09d46d5fe8c8b6896aa936865638dec
 RUN git init --quiet && \
     git fetch --depth 1 https://github.com/hubertpi/ha-fusion.git "${FUSION_REVISION}" && \
     git checkout --quiet --detach FETCH_HEAD

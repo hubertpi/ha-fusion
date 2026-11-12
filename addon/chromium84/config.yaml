@@ -1,5 +1,5 @@
 name: Fusion Chromium 84
-version: '2026.8.2-compat.1'
+version: '2026.8.2-compat.2'
 slug: ha_fusion_chromium84
 description: Fusion dashboard for tablets using Chromium 84 WebView
 url: https://github.com/hubertpi/ha-fusion/tree/compat/chromium-84
