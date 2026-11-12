@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { editMode } from '$lib/Stores';
+	import { connected, connection, editMode } from '$lib/Stores';
 	import { onMount } from 'svelte';
 	import Broken from '$lib/Main/Camera/Broken.svelte';
 
@@ -26,7 +26,7 @@
 	let img: HTMLImageElement;
 	let broken = $state<boolean>();
 	let date = $state<number>();
-	let interval: ReturnType<typeof setInterval>;
+	let signedSnapshot = $state<{ cameraPath: string; url: string }>();
 
 	let entity_picture = $derived(entity?.attributes?.entity_picture || '');
 	// Only legacy MJPEG cameras use camera_proxy_stream. HLS and WebRTC
@@ -44,13 +44,66 @@
 
 	const updateInterval = 30_000;
 
+	// Sign each snapshot using the authenticated Home Assistant connection.
+	// Keep camera-specific tokens out of recurring snapshot requests.
+	let cameraPath = $derived.by(() => {
+		if (proxy_stream) return undefined;
+		return entity_picture.match(/^\/api\/camera_proxy\/camera\.[a-z0-9_]+(?=\?|$)/)?.[0];
+	});
+
+	let snapshotSize = $derived.by(() => {
+		const query = new URLSearchParams(entity_picture.split('?')[1]);
+		return ['width', 'height']
+			.flatMap((key) => {
+				const value = query.get(key);
+				return value === null ? [] : [`${key}=${encodeURIComponent(value)}`];
+			})
+			.join('&');
+	});
+
+	$effect(() => {
+		const conn = $connection;
+		const path = cameraPath;
+		if (!$connected || !conn || !path) return;
+
+		const sizeQuery = snapshotSize;
+		const pathToSign = date === undefined ? path : `${path}?date=${date}`;
+		let active = true;
+
+		void conn
+			.sendMessagePromise<{ path: string }>({ type: 'auth/sign_path', path: pathToSign })
+			.then(({ path: url }) => {
+				if (active) {
+					// Home Assistant excludes width and height from the signed query.
+					signedSnapshot = { cameraPath: path, url: sizeQuery ? `${url}&${sizeQuery}` : url };
+				}
+			})
+			.catch(() => {
+				if (active) handleError(true);
+			});
+
+		return () => {
+			active = false;
+		};
+	});
+
+	let imageSrc = $derived(
+		proxy_stream
+			? entity_picture?.replace('/camera_proxy/', '/camera_proxy_stream/')
+			: cameraPath
+				? signedSnapshot?.cameraPath === cameraPath
+					? signedSnapshot?.url
+					: undefined
+				: entity_picture
+					? `${entity_picture}${date ? '&date=' + date : ''}`
+					: undefined
+	);
+
 	onMount(() => {
-		clearInterval(interval);
-		interval = setInterval(() => {
+		const interval = setInterval(() => {
 			date = Date.now();
 		}, updateInterval);
 
-		// cleanup
 		return () => {
 			clearInterval(interval);
 			if (img) img.src = '';
@@ -59,11 +112,7 @@
 </script>
 
 <img
-	src={proxy_stream
-		? entity_picture?.replace('/camera_proxy/', '/camera_proxy_stream/')
-		: entity_picture
-			? `${entity_picture}${date ? '&date=' + date : ''}`
-			: 'about:blank'}
+	src={imageSrc}
 	bind:this={img}
 	onerror={() => handleError(true)}
 	onload={() => handleError(false)}
