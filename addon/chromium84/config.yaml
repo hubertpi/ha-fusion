@@ -1,0 +1,18 @@
+name: Fusion Chromium 84
+version: '2026.8.2-compat.1'
+slug: ha_fusion_chromium84
+description: Fusion dashboard for tablets using Chromium 84 WebView
+url: https://github.com/hubertpi/ha-fusion/tree/compat/chromium-84
+arch:
+  - amd64
+  - aarch64
+init: false
+ingress: true
+ingress_stream: true
+panel_icon: mdi:atom
+panel_admin: false
+hassio_api: true
+ports:
+  8099/tcp: null
+ports_description:
+  8099/tcp: Direct dashboard access for kiosk browsers
