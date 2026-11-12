@@ -7,6 +7,11 @@ dotenv.config();
 export default defineConfig({
 	plugins: [sveltekit()],
 	build: {
+		// Fire OS 7 / Android 9 tablets can be locked to Amazon WebView Chromium 84.
+		// Avoid Vite 8's default Chrome 111 output so those tablets can load Fusion.
+		// This lowers syntax/CSS output; browser API polyfills may still be needed.
+		target: 'chrome84',
+		cssTarget: 'chrome84',
 		// increase chunk size because of maplibre-gl
 		chunkSizeWarningLimit: 1000
 	},
