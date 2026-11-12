@@ -39,3 +39,7 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+      - name: Build Chromium 84 add-on image
+        if: github.repository == 'hubertpi/ha-fusion'
+        run: docker build --tag fusion-chromium84:ci addon/chromium84
